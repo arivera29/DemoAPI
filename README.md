@@ -74,3 +74,15 @@ Para configurar la cadena de conexión a la base de datos se debe modificar el a
 ~~~
 "SQLServerConnection": "Server=localhost;Database=demo;User Id=demo;Password=Pantera.2341;TrustServerCertificate=True"
 ~~~
+
+### Creación del modelo datos en el servidor SQL Server
+Para la creación del modelo debe iniciar la Consolo de NuGet en Visual Studio .NET y ejecutar el siguiente comando:
+~~~
+Update-Database
+~~~
+
+La respuesta del comando debe ser:
+~~~
+Build started...
+Build succeeded.
+~~~
