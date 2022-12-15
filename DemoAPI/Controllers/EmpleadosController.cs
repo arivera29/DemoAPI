@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using DemoAPI.Models;
+using DemoAPI.DAO;
 
 namespace DemoAPI.Controllers
 {
@@ -22,6 +23,7 @@ namespace DemoAPI.Controllers
     public class EmpleadosController : ControllerBase
     {
         private readonly DemoContext _context;
+        private EmpleadoDAO empleadoDAO;
 
         /// <summary>
         /// Construcctor de la clase
@@ -30,6 +32,7 @@ namespace DemoAPI.Controllers
         public EmpleadosController(DemoContext context)
         {
             _context = context;
+            empleadoDAO = new EmpleadoDAO(context);
         }
 
         /// <summary>
@@ -42,7 +45,7 @@ namespace DemoAPI.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Empleado>>> GetEmpleado()
         {
-            return await _context.Empleado.ToListAsync();
+            return await empleadoDAO.ObtenerTodoAsync();
         }
         /// <summary>
         /// Método para obtener los datos de un empleado registrado en la base de datos.
@@ -56,14 +59,11 @@ namespace DemoAPI.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Empleado>> GetEmpleado(int id)
         {
-            var empleado = await _context.Empleado.FindAsync(id);
-
+            var empleado = await empleadoDAO
+                                 .ObtenerPorIdAsync(id);
             if (empleado == null)
-            {
                 return NotFound();
-            }
-
-            return empleado;
+            return Ok(empleado);
         }
 
         /// <summary>
@@ -79,27 +79,16 @@ namespace DemoAPI.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> PutEmpleado(int id, Empleado empleado)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
             if (id != empleado.Id)
-            {
                 return BadRequest();
-            }
 
-            _context.Entry(empleado).State = EntityState.Modified;
-
-            try
+            if (!await empleadoDAO.ModificarAsync(empleado))
             {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!EmpleadoExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                return StatusCode(empleadoDAO.customError.StatusCode,
+                                         empleadoDAO.customError.Message);
             }
 
             return NoContent();
@@ -116,10 +105,17 @@ namespace DemoAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<Empleado>> PostEmpleado(Empleado empleado)
         {
-            _context.Empleado.Add(empleado);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetEmpleado", new { id = empleado.Id }, empleado);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+            //Cambiamos el código para agregar aquí la clase.
+            //Si no fue correcto regresamos el mensaje de error devuelto 
+            if (!await empleadoDAO.AgregarAsync(empleado))
+            {
+                return StatusCode(empleadoDAO.customError.StatusCode,
+                                  empleadoDAO.customError.Message);
+            }
+            return CreatedAtAction("GetEmpleado",
+                                      new { id = empleado.Id }, empleado);
         }
         /// <summary>
         /// Método para eliminar un empleado en la base de datos
@@ -144,15 +140,6 @@ namespace DemoAPI.Controllers
             return NoContent();
         }
 
-        /// <summary>
-        /// Método para consultar si existe un empleado en la base de datos
-        /// </summary>
-        /// <param name="id">Identificador del empleado</param>
-        /// <returns>Objeto de tipo Empleado</returns>
-
-        private bool EmpleadoExists(int id)
-        {
-            return _context.Empleado.Any(e => e.Id == id);
-        }
+        
     }
 }

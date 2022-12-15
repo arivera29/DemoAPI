@@ -12,6 +12,9 @@ namespace DemoAPI.Models
     /// </remarks>
     public class DemoContext : DbContext
     {
+        public DemoContext()
+        {
+        }
 
         /// <summary>
         /// Método constructor de la clase
